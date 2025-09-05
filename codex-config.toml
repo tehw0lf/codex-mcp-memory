@@ -1,0 +1,14 @@
+[mcp_servers.memory]
+command = "node"
+args = ["/Users/aherashchenko/Projects/mcp-memory/src/server.js"]
+
+[mcp_servers.memory.env]
+# Optional: DB for memory storage/search
+DATABASE_URL = "postgresql://swarm:swarm@localhost:54329/swarmdb"
+
+# Optional: write server debug logs here (defaults to repo memory-debug.log)
+MCP_DEBUG_LOG_PATH = "/tmp/memory-debug.log"
+
+# Recommended runtime
+NODE_ENV = "production"
+
