@@ -1,0 +1,63 @@
+import js from '@eslint/js';
+import prettierConfig from 'eslint-config-prettier';
+import prettierPlugin from 'eslint-plugin-prettier';
+
+export default [
+  js.configs.recommended,
+  prettierConfig,
+  {
+    plugins: {
+      prettier: prettierPlugin,
+    },
+    rules: {
+      'prettier/prettier': 'error',
+      'no-unused-vars': 'error',
+      'no-undef': 'error',
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'no-console': 'warn',
+      'no-debugger': 'error',
+      'no-eval': 'error',
+      'no-implied-eval': 'error',
+      'no-new-func': 'error',
+      'no-throw-literal': 'error',
+      'no-unmodified-loop-condition': 'error',
+      'no-unsafe-finally': 'error',
+      'no-unused-expressions': 'error',
+      'no-use-before-define': 'error',
+      'no-useless-concat': 'error',
+      'no-useless-return': 'error',
+      'no-void': 'error',
+      'no-with': 'error',
+      'prefer-promise-reject-errors': 'error',
+      'require-await': 'error',
+      yoda: 'error',
+      eqeqeq: ['error', 'always'],
+      curly: ['error', 'all'],
+      'max-params': ['error', 3],
+      'max-lines-per-function': ['error', 100],
+      complexity: ['error', 10],
+    },
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        global: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        exports: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        setImmediate: 'readonly',
+        clearImmediate: 'readonly',
+      },
+    },
+  },
+];

@@ -18,6 +18,7 @@ A safe, reliable, and production-ready MCP (Model Context Protocol) server that 
 ## Prerequisites
 
 1. PostgreSQL 14+ with pgvector extension installed:
+
 ```bash
 # In your PostgreSQL instance:
 CREATE EXTENSION vector;
@@ -28,6 +29,7 @@ CREATE EXTENSION vector;
 ## Setup
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
@@ -36,6 +38,7 @@ npm install
 
 **Option A: Using .env file (for development)**
 Copy `.env.example` to `.env` and adjust the values:
+
 ```bash
 cp .env.example .env
 ```
@@ -44,6 +47,7 @@ cp .env.example .env
 Configure environment variables in your `codex-config.toml` as shown in the MCP Configuration section.
 
 Required configuration:
+
 ```bash
 # Database Configuration (Required)
 DATABASE_URL=postgresql://user:password@localhost:5432/dbname
@@ -61,9 +65,10 @@ NODE_ENV=production                      # Runtime environment
 See `.env.example` for all available configuration options.
 
 3. Initialize the database:
-The database schema is automatically initialized when the server starts. Ensure your PostgreSQL database has the pgvector extension enabled.
+   The database schema is automatically initialized when the server starts. Ensure your PostgreSQL database has the pgvector extension enabled.
 
 4. Start the server:
+
 ```bash
 npm start
 ```
@@ -112,7 +117,7 @@ The server provides three MCP tools for memory operations:
 
 1. **memory_create** - Create a new memory entry
    - `type`: Type of memory (string, required)
-   - `content`: Content to store (object, required) 
+   - `content`: Content to store (object, required)
    - `source`: Source of the memory (string, required)
    - `confidence`: Confidence score between 0 and 1 (number, required)
    - `tags`: Optional tags (array of strings, optional)
@@ -145,10 +150,26 @@ For projects using AI agents, include an `AGENTS.md` file with the following mem
 
 ```markdown
 # Memory policy
+
 - After each /apply, /run, file edit, migration or command execution, summarize changes and call MCP tool `memory_create`.
-- Always include tags: ["repo:<repo_name>","branch:develop","svc:executor-evm"] (adjust per project).
+- Always include tags: ["repo:<repo_name>","branch:develop","svc:<service_name>"] (adjust per project).
 - On new tasks, first call `memory_search` with the repo/branch tags to recall last context.
 - Keep entries concise: what changed, why, artifacts, next steps.
 ```
 
-This ensures AI agents automatically maintain project memory and context across sessions. 
+This ensures AI agents automatically maintain project memory and context across sessions.
+
+### Claude MCP
+
+```bash
+claude mcp add memory \
+  --env DATABASE_URL="postgresql://user:pass@localhost:5432/db" \
+  --env LOG_LEVEL=info \
+  --env EMBEDDINGS_CACHE_SIZE=500 \
+  -- node /abs/path/to/memory/src/server.js
+```
+
+Use resources:
+
+- `@memory:mem://by-tags/repo:<repo-name>,svc:<service-name>`
+- `@memory:mem://item/<uuid>`
