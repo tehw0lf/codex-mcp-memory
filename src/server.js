@@ -789,6 +789,9 @@ class MCPProtocolHandler {
     this.embeddings = embeddingsManager;
     this.validator = validator;
     this.isInitialized = false;
+    // TEMPORARY WORKAROUND: Store client info to detect Claude Desktop
+    // TODO: Remove when https://github.com/modelcontextprotocol/docs/issues/XXX is fixed
+    this.clientInfo = null;
   }
 
   createErrorResponse(id, code, message) {
@@ -797,6 +800,20 @@ class MCPProtocolHandler {
       id,
       error: { code, message },
     };
+  }
+
+  // TEMPORARY WORKAROUND: Detect Claude Desktop to apply compatibility fixes
+  // TODO: Remove when https://github.com/modelcontextprotocol/docs/issues/XXX is fixed
+  isClaudeDesktop() {
+    if (!this.clientInfo || !this.clientInfo.name) {
+      return false;
+    }
+    const clientName = String(this.clientInfo.name).toLowerCase();
+    // Claude Desktop identifies as "claude-ai", Claude Code identifies as "claude-code"
+    return (
+      clientName === 'claude-ai' ||
+      (clientName.includes('claude') && clientName.includes('desktop'))
+    );
   }
 
   // Enhanced createSuccessResponse for structured content (MCP 2025-06-18 compliant)
@@ -929,6 +946,10 @@ class MCPProtocolHandler {
     if (this.isInitialized) {
       return this.createErrorResponse(id, -32002, 'Server already initialized');
     }
+
+    // TEMPORARY WORKAROUND: Store client info for Claude Desktop detection
+    // TODO: Remove when https://github.com/modelcontextprotocol/docs/issues/XXX is fixed
+    this.clientInfo = params.clientInfo || null;
 
     this.logger.info('Processing initialize request', {
       clientInfo: params.clientInfo,
@@ -1131,6 +1152,23 @@ class MCPProtocolHandler {
       )
       .join('\n');
 
+    // TEMPORARY WORKAROUND: Claude Desktop doesn't support mixed content types
+    // Remove ResourceLinks when Claude Desktop is detected
+    // TODO: Remove when https://github.com/modelcontextprotocol/docs/issues/XXX is fixed
+    const isClaudeDesktopClient = this.isClaudeDesktop();
+
+    const resourceLinks = rows.map(r => ({
+      type: 'resource_link',
+      uri: `mem://item/${r.id}`,
+      name: `memory:${r.id}`,
+      description: `Full content for ${r.id}`,
+      mimeType: 'application/json',
+    }));
+
+    if (isClaudeDesktopClient) {
+      this.logger.debug('Claude Desktop detected: removing ResourceLinks from response');
+    }
+
     // NOTE: ResourceLinks in content array are spec-compliant (MCP 2025-06-18)
     // but Claude Desktop (as of 2025-10-10) doesn't handle mixed content types properly.
     // This is a Claude Desktop bug, not a server issue.
@@ -1138,16 +1176,9 @@ class MCPProtocolHandler {
       jsonrpc: '2.0',
       id,
       result: {
-        content: [
-          { type: 'text', text: `Found ${rows.length} memories:\n${lines}` },
-          ...rows.map(r => ({
-            type: 'resource_link',
-            uri: `mem://item/${r.id}`,
-            name: `memory:${r.id}`,
-            description: `Full content for ${r.id}`,
-            mimeType: 'application/json',
-          })),
-        ],
+        content: isClaudeDesktopClient
+          ? [{ type: 'text', text: `Found ${rows.length} memories:\n${lines}` }]
+          : [{ type: 'text', text: `Found ${rows.length} memories:\n${lines}` }, ...resourceLinks],
         structuredContent: { items },
       },
     };
@@ -1171,6 +1202,23 @@ class MCPProtocolHandler {
 
       const lines = rows.map(r => `• [${r.type}] tags=${(r.tags ?? []).join(', ')}`).join('\n');
 
+      // TEMPORARY WORKAROUND: Claude Desktop doesn't support mixed content types
+      // Remove ResourceLinks when Claude Desktop is detected
+      // TODO: Remove when https://github.com/modelcontextprotocol/docs/issues/XXX is fixed
+      const isClaudeDesktopClient = this.isClaudeDesktop();
+
+      const resourceLinks = rows.map(r => ({
+        type: 'resource_link',
+        uri: `mem://item/${r.id}`,
+        name: `memory:${r.id}`,
+        description: `Full content for ${r.id}`,
+        mimeType: 'application/json',
+      }));
+
+      if (isClaudeDesktopClient) {
+        this.logger.debug('Claude Desktop detected: removing ResourceLinks from response');
+      }
+
       // NOTE: ResourceLinks in content array are spec-compliant (MCP 2025-06-18)
       // but Claude Desktop (as of 2025-10-10) doesn't handle mixed content types properly.
       // This is a Claude Desktop bug, not a server issue.
@@ -1178,16 +1226,12 @@ class MCPProtocolHandler {
         jsonrpc: '2.0',
         id,
         result: {
-          content: [
-            { type: 'text', text: `Found ${rows.length} memories:\n${lines}` },
-            ...rows.map(r => ({
-              type: 'resource_link',
-              uri: `mem://item/${r.id}`,
-              name: `memory:${r.id}`,
-              description: `Full content for ${r.id}`,
-              mimeType: 'application/json',
-            })),
-          ],
+          content: isClaudeDesktopClient
+            ? [{ type: 'text', text: `Found ${rows.length} memories:\n${lines}` }]
+            : [
+                { type: 'text', text: `Found ${rows.length} memories:\n${lines}` },
+                ...resourceLinks,
+              ],
           structuredContent: { items },
         },
       };
