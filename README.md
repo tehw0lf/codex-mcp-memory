@@ -13,7 +13,7 @@ A safe, reliable, and production-ready MCP (Model Context Protocol) server that 
 - **Graceful Shutdown**: Proper resource cleanup on shutdown signals
 - **Error Boundaries**: Comprehensive error handling with proper error propagation
 - **Semantic Search**: BERT-based embedding generation with similarity scoring
-- **MCP Protocol Compliant**: Full compatibility with Codex CLI and other MCP clients
+- **MCP Protocol 2025-06-18 Compliant**: Full compatibility with latest MCP specification
 
 ## Prerequisites
 
@@ -59,6 +59,7 @@ SEARCH_DEFAULT_LIMIT=10                 # Default search result limit
 MAX_CONTENT_LENGTH=10000                # Max content size for security
 MAX_TAGS_COUNT=20                       # Max number of tags per memory
 MCP_DEBUG_LOG_PATH=/tmp/memory-debug.log # MCP debug logging path
+MCP_PROTOCOL_VERSION=2025-06-18         # MCP protocol version (default: 2024-11-05)
 NODE_ENV=production                      # Runtime environment
 ```
 

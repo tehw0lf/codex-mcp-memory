@@ -799,15 +799,22 @@ class MCPProtocolHandler {
     };
   }
 
-  // Enhanced createSuccessResponse for structured content
+  // Enhanced createSuccessResponse for structured content (MCP 2025-06-18 compliant)
   createSuccessResponse(id, text, structured) {
+    const result = {
+      content: [{ type: 'text', text }],
+    };
+
+    // structuredContent must be an object, not an array (per MCP 2025-06-18 spec)
+    if (structured !== undefined && structured !== null) {
+      // If structured is an array, wrap it in an object with an 'items' property
+      result.structuredContent = Array.isArray(structured) ? { items: structured } : structured;
+    }
+
     return {
       jsonrpc: '2.0',
       id,
-      result: {
-        content: [{ type: 'text', text }],
-        structuredContent: structured,
-      },
+      result,
     };
   }
 
@@ -1002,15 +1009,20 @@ class MCPProtocolHandler {
               },
             },
             structuredContent: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                  type: { type: 'string' },
-                  similarity: { type: 'number' },
-                  tags: { type: 'array', items: { type: 'string' } },
-                  createdAt: { type: 'string' },
+              type: 'object',
+              properties: {
+                items: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      type: { type: 'string' },
+                      similarity: { type: 'number' },
+                      tags: { type: 'array', items: { type: 'string' } },
+                      createdAt: { type: 'string' },
+                    },
+                  },
                 },
               },
             },
@@ -1119,6 +1131,9 @@ class MCPProtocolHandler {
       )
       .join('\n');
 
+    // NOTE: ResourceLinks in content array are spec-compliant (MCP 2025-06-18)
+    // but Claude Desktop (as of 2025-10-10) doesn't handle mixed content types properly.
+    // This is a Claude Desktop bug, not a server issue.
     return {
       jsonrpc: '2.0',
       id,
@@ -1133,7 +1148,7 @@ class MCPProtocolHandler {
             mimeType: 'application/json',
           })),
         ],
-        structuredContent: items,
+        structuredContent: { items },
       },
     };
   }
@@ -1156,6 +1171,9 @@ class MCPProtocolHandler {
 
       const lines = rows.map(r => `• [${r.type}] tags=${(r.tags ?? []).join(', ')}`).join('\n');
 
+      // NOTE: ResourceLinks in content array are spec-compliant (MCP 2025-06-18)
+      // but Claude Desktop (as of 2025-10-10) doesn't handle mixed content types properly.
+      // This is a Claude Desktop bug, not a server issue.
       return {
         jsonrpc: '2.0',
         id,
@@ -1170,7 +1188,7 @@ class MCPProtocolHandler {
               mimeType: 'application/json',
             })),
           ],
-          structuredContent: items,
+          structuredContent: { items },
         },
       };
     } catch (error) {
