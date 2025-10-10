@@ -14,6 +14,7 @@ A safe, reliable, and production-ready MCP (Model Context Protocol) server that 
 - **Error Boundaries**: Comprehensive error handling with proper error propagation
 - **Semantic Search**: BERT-based embedding generation with similarity scoring
 - **MCP Protocol 2025-06-18 Compliant**: Full compatibility with latest MCP specification
+- **Client Compatibility**: Automatic client detection with workarounds for known client bugs
 
 ## Prerequisites
 
@@ -59,7 +60,7 @@ SEARCH_DEFAULT_LIMIT=10                 # Default search result limit
 MAX_CONTENT_LENGTH=10000                # Max content size for security
 MAX_TAGS_COUNT=20                       # Max number of tags per memory
 MCP_DEBUG_LOG_PATH=/tmp/memory-debug.log # MCP debug logging path
-MCP_PROTOCOL_VERSION=2025-06-18         # MCP protocol version (default: 2024-11-05)
+MCP_PROTOCOL_VERSION=2025-06-18         # MCP protocol version (default: 2024-11-05, recommended: 2025-06-18)
 NODE_ENV=production                      # Runtime environment
 ```
 
@@ -174,3 +175,19 @@ Use resources:
 
 - `@memory:mem://by-tags/repo:<repo-name>,svc:<service-name>`
 - `@memory:mem://item/<uuid>`
+
+## Known Issues
+
+### Claude Desktop ResourceLink Compatibility
+
+**Issue**: Claude Desktop (as of version 0.13.37) has a bug where it rejects spec-compliant `CallToolResult` responses containing mixed content types (e.g., `TextContent` + `ResourceLink`), even though the MCP 2025-06-18 specification explicitly allows this.
+
+**Workaround**: The server automatically detects Claude Desktop clients (via client name during initialization) and filters out `ResourceLink` items from responses. Spec-compliant clients (Claude Code, etc.) receive full responses with ResourceLinks.
+
+**Status**:
+- **Local issue**: [#2](https://github.com/geranton93/codex-mcp-memory/issues/2)
+- **Upstream bug report**: [modelcontextprotocol/modelcontextprotocol#1638](https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1638)
+
+**Impact**: When using Claude Desktop, you will not receive `ResourceLink` items in tool responses. Use `resources/read` with `mem://` URIs directly if you need to fetch full memory content.
+
+This workaround will be removed once the Claude Desktop bug is fixed.
