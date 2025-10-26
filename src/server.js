@@ -821,6 +821,9 @@ class MCPProtocolHandler {
   }
 
   // TEMPORARY WORKAROUND: Detect Claude Desktop to apply compatibility fixes
+  // Current fixes:
+  // 1. Remove ResourceLinks from content array (mixed content types not supported)
+  // 2. Include UUIDs in text output (structuredContent not accessible)
   // TODO: Remove when https://github.com/modelcontextprotocol/docs/issues/XXX is fixed
   isClaudeDesktop() {
     if (!this.clientInfo || !this.clientInfo.name) {
@@ -1204,16 +1207,21 @@ class MCPProtocolHandler {
       createdAt: r.created_at,
     }));
 
-    const lines = rows
-      .map(
-        r => `• [${r.type}] sim=${(r.similarity ?? 0).toFixed(3)} tags=${(r.tags ?? []).join(', ')}`
-      )
-      .join('\n');
-
     // TEMPORARY WORKAROUND: Claude Desktop doesn't support mixed content types
+    // and cannot access structuredContent, so we need to include UUIDs in text
     // Remove ResourceLinks when Claude Desktop is detected
     // TODO: Remove when https://github.com/modelcontextprotocol/docs/issues/XXX is fixed
     const isClaudeDesktopClient = this.isClaudeDesktop();
+
+    const lines = rows
+      .map(r => {
+        const baseLine = `• [${r.type}] sim=${(r.similarity ?? 0).toFixed(3)} tags=${(r.tags ?? []).join(', ')}`;
+        if (isClaudeDesktopClient) {
+          return `• ID: ${r.id}\n  ${baseLine.substring(2)}`; // Two-line format for readability
+        }
+        return baseLine;
+      })
+      .join('\n');
 
     const resourceLinks = rows.map(r => ({
       type: 'resource_link',
@@ -1258,12 +1266,21 @@ class MCPProtocolHandler {
         createdAt: r.created_at,
       }));
 
-      const lines = rows.map(r => `• [${r.type}] tags=${(r.tags ?? []).join(', ')}`).join('\n');
-
       // TEMPORARY WORKAROUND: Claude Desktop doesn't support mixed content types
+      // and cannot access structuredContent, so we need to include UUIDs in text
       // Remove ResourceLinks when Claude Desktop is detected
       // TODO: Remove when https://github.com/modelcontextprotocol/docs/issues/XXX is fixed
       const isClaudeDesktopClient = this.isClaudeDesktop();
+
+      const lines = rows
+        .map(r => {
+          const baseLine = `• [${r.type}] tags=${(r.tags ?? []).join(', ')}`;
+          if (isClaudeDesktopClient) {
+            return `• ID: ${r.id}\n  ${baseLine.substring(2)}`; // Two-line format for readability
+          }
+          return baseLine;
+        })
+        .join('\n');
 
       const resourceLinks = rows.map(r => ({
         type: 'resource_link',
