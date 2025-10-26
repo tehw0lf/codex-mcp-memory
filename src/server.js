@@ -420,6 +420,24 @@ class Validator {
 
     return validated;
   }
+
+  validateMemoryGet(params) {
+    const { id } = params;
+
+    if (!id || typeof id !== 'string' || id.trim().length === 0) {
+      throw new ValidationError('id is required and must be a non-empty string');
+    }
+
+    // Basic UUID format validation (optional but recommended)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const trimmedId = id.trim();
+
+    if (!uuidRegex.test(trimmedId)) {
+      throw new ValidationError('id must be a valid UUID format');
+    }
+
+    return { id: trimmedId };
+  }
 }
 
 // ============================================================================
@@ -803,6 +821,9 @@ class MCPProtocolHandler {
   }
 
   // TEMPORARY WORKAROUND: Detect Claude Desktop to apply compatibility fixes
+  // Current fixes:
+  // 1. Remove ResourceLinks from content array (mixed content types not supported)
+  // 2. Include UUIDs in text output (structuredContent not accessible)
   // TODO: Remove when https://github.com/modelcontextprotocol/docs/issues/XXX is fixed
   isClaudeDesktop() {
     if (!this.clientInfo || !this.clientInfo.name) {
@@ -982,6 +1003,7 @@ class MCPProtocolHandler {
     return response;
   }
 
+  // eslint-disable-next-line max-lines-per-function
   handleListTools(id) {
     const tools = [
       {
@@ -1058,6 +1080,45 @@ class MCPProtocolHandler {
           properties: {
             type: { type: 'string', description: 'Optional type filter' },
             tags: { type: 'array', items: { type: 'string' }, description: 'Optional tags filter' },
+          },
+        },
+      },
+      {
+        name: 'memory_get',
+        description: 'Retrieve a memory by its ID',
+        inputSchema: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', description: 'Memory ID to retrieve' },
+          },
+        },
+        outputSchema: {
+          type: 'object',
+          properties: {
+            content: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  type: { type: 'string' },
+                  text: { type: 'string' },
+                },
+              },
+            },
+            structuredContent: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                type: { type: 'string' },
+                content: { type: 'object' },
+                source: { type: 'string' },
+                tags: { type: 'array', items: { type: 'string' } },
+                confidence: { type: 'number' },
+                createdAt: { type: 'string' },
+                updatedAt: { type: 'string' },
+              },
+            },
           },
         },
       },
@@ -1146,16 +1207,21 @@ class MCPProtocolHandler {
       createdAt: r.created_at,
     }));
 
-    const lines = rows
-      .map(
-        r => `• [${r.type}] sim=${(r.similarity ?? 0).toFixed(3)} tags=${(r.tags ?? []).join(', ')}`
-      )
-      .join('\n');
-
     // TEMPORARY WORKAROUND: Claude Desktop doesn't support mixed content types
+    // and cannot access structuredContent, so we need to include UUIDs in text
     // Remove ResourceLinks when Claude Desktop is detected
     // TODO: Remove when https://github.com/modelcontextprotocol/docs/issues/XXX is fixed
     const isClaudeDesktopClient = this.isClaudeDesktop();
+
+    const lines = rows
+      .map(r => {
+        const baseLine = `• [${r.type}] sim=${(r.similarity ?? 0).toFixed(3)} tags=${(r.tags ?? []).join(', ')}`;
+        if (isClaudeDesktopClient) {
+          return `• ID: ${r.id}\n  ${baseLine.substring(2)}`; // Two-line format for readability
+        }
+        return baseLine;
+      })
+      .join('\n');
 
     const resourceLinks = rows.map(r => ({
       type: 'resource_link',
@@ -1200,12 +1266,21 @@ class MCPProtocolHandler {
         createdAt: r.created_at,
       }));
 
-      const lines = rows.map(r => `• [${r.type}] tags=${(r.tags ?? []).join(', ')}`).join('\n');
-
       // TEMPORARY WORKAROUND: Claude Desktop doesn't support mixed content types
+      // and cannot access structuredContent, so we need to include UUIDs in text
       // Remove ResourceLinks when Claude Desktop is detected
       // TODO: Remove when https://github.com/modelcontextprotocol/docs/issues/XXX is fixed
       const isClaudeDesktopClient = this.isClaudeDesktop();
+
+      const lines = rows
+        .map(r => {
+          const baseLine = `• [${r.type}] tags=${(r.tags ?? []).join(', ')}`;
+          if (isClaudeDesktopClient) {
+            return `• ID: ${r.id}\n  ${baseLine.substring(2)}`; // Two-line format for readability
+          }
+          return baseLine;
+        })
+        .join('\n');
 
       const resourceLinks = rows.map(r => ({
         type: 'resource_link',
@@ -1241,6 +1316,54 @@ class MCPProtocolHandler {
     }
   }
 
+  async handleMemoryGet(id, params) {
+    try {
+      const validated = this.validator.validateMemoryGet(params);
+      const memory = await this.db.getMemoryById(validated.id);
+
+      if (!memory) {
+        this.logger.warn('Memory not found', { id: validated.id });
+        return this.createErrorResponse(id, -32000, `Memory not found: ${validated.id}`);
+      }
+
+      this.logger.info('Memory retrieved', {
+        id: memory.id,
+        type: memory.type,
+        tagsCount: Array.isArray(memory.tags) ? memory.tags.length : 0,
+      });
+
+      const textContent = [
+        `Memory: ${memory.id}`,
+        `Type: ${memory.type}`,
+        `Source: ${memory.source}`,
+        `Tags: ${JSON.stringify(memory.tags ?? [])}`,
+        `Confidence: ${memory.confidence}`,
+        `Created: ${memory.created_at}`,
+        `Updated: ${memory.updated_at}`,
+        '',
+        'Content:',
+        JSON.stringify(memory.content, null, 2),
+      ].join('\n');
+
+      return this.createSuccessResponse(id, textContent, {
+        id: memory.id,
+        type: memory.type,
+        content: memory.content,
+        source: memory.source,
+        tags: memory.tags ?? [],
+        confidence: memory.confidence,
+        createdAt: memory.created_at,
+        updatedAt: memory.updated_at,
+      });
+    } catch (error) {
+      this.logger.error('Failed to get memory', {
+        error: error.message,
+        id: params?.id,
+      });
+      return this.createErrorResponse(id, -32000, `Failed to get memory: ${error.message}`);
+    }
+  }
+
   async handleToolCall(id, params) {
     const toolName = params.name;
     const toolArgs = params.arguments || params.input || {};
@@ -1260,6 +1383,8 @@ class MCPProtocolHandler {
         return await this.handleMemorySearch(id, toolArgs);
       case 'memory_list':
         return await this.handleMemoryList(id, toolArgs);
+      case 'memory_get':
+        return await this.handleMemoryGet(id, toolArgs);
       default:
         this.logger.warn('Unknown tool', { tool: toolName });
         return this.createErrorResponse(id, -32601, `Tool not found: ${toolName}`);

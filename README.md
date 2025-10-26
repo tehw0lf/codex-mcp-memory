@@ -185,6 +185,7 @@ Use resources:
 **Workaround**: The server automatically detects Claude Desktop clients (via client name during initialization) and filters out `ResourceLink` items from responses. Spec-compliant clients (Claude Code, etc.) receive full responses with ResourceLinks.
 
 **Status**:
+
 - **Local issue**: [#2](https://github.com/geranton93/codex-mcp-memory/issues/2)
 - **Upstream bug report**: [modelcontextprotocol/modelcontextprotocol#1638](https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1638)
 
