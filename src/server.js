@@ -251,7 +251,7 @@ class ValidationError extends Error {
 class Validator {
   constructor(config) {
     this.config = config;
-    this.TAG_RE = /^[a-z0-9:_-]{1,100}$/;
+    this.TAG_RE = /^[a-z0-9:._-]{1,100}$/;
   }
 
   validateMemoryCreate(params) {
@@ -324,7 +324,7 @@ class Validator {
     }
   }
 
-  sanitizeTags(tags) {
+  sanitizeTags(tags = []) {
     return Array.from(
       new Set(
         tags.map(tag => {
