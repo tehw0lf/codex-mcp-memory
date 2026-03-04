@@ -58,4 +58,12 @@ export default [
       },
     },
   },
+  // Test files: relax rules that are impractical for describe/it blocks
+  {
+    files: ['test/**/*.js'],
+    rules: {
+      'max-lines-per-function': 'off',
+      'max-params': 'off',
+    },
+  },
 ];
