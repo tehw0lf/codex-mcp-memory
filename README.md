@@ -97,7 +97,7 @@ To use this memory server with Codex CLI, add the following configuration to you
 ```toml
 [mcp_servers.memory]
 command = "node"
-args = ["/path/to/your/memory/src/server.js"]
+args = ["/path/to/your/memory/src/index.js"]
 
 [mcp_servers.memory.env]
 # Database configuration (required)
@@ -110,7 +110,7 @@ MCP_DEBUG_LOG_PATH = "/tmp/memory-debug.log"
 NODE_ENV = "production"
 ```
 
-Replace `/path/to/your/memory/src/server.js` with the actual absolute path to your server file.
+Replace `/path/to/your/memory/src/index.js` with the actual absolute path to your server file.
 
 The server communicates over stdio using the MCP JSON‑RPC protocol and is launched by Codex CLI when needed.
 
@@ -169,7 +169,7 @@ claude mcp add memory \
   --env DATABASE_URL="postgresql://user:pass@localhost:5432/db" \
   --env LOG_LEVEL=info \
   --env EMBEDDINGS_CACHE_SIZE=500 \
-  -- node /abs/path/to/memory/src/server.js
+  -- node /abs/path/to/memory/src/index.js
 ```
 
 Use resources:
