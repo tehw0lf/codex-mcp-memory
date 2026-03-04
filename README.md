@@ -51,7 +51,8 @@ Required configuration:
 
 ```bash
 # Database Configuration (Required)
-DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+POSTGRES_PASSWORD=your-secure-password-here
+DATABASE_URL=postgresql://postgres:your-secure-password-here@localhost:5432/mcp_memory
 
 # Optional configurations with defaults
 LOG_LEVEL=info                          # error, warn, info, debug
@@ -197,8 +198,8 @@ To restore a backup, stop the server and run `pg_restore` against your database:
 ```bash
 # 1. Stop the MCP server (disconnect from any MCP clients first)
 
-# 2. Restore the dump
-PGPASSWORD=yourpassword pg_restore \
+# 2. Restore the dump (POSTGRES_PASSWORD is set in your .env file)
+source .env && PGPASSWORD=$POSTGRES_PASSWORD pg_restore \
   --host=localhost \
   --port=5432 \
   --username=postgres \

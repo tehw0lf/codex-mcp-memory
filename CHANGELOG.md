@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-03-04
+
+### Fixed
+
+- **`POSTGRES_PASSWORD` now defined in `.env`**: Previously the variable was only consumed from the shell environment (risk of exposure in shell history). It is now documented and set in `.env` / `.env.example` alongside `DATABASE_URL`, so `docker-compose up` works without any manual `export`.
+- **README restore command**: The `pg_restore` example no longer hard-codes a password in the command line; it now sources `POSTGRES_PASSWORD` from `.env` via `source .env`.
+
 ## [0.1.0] - 2026-03-04
 
 ### Added
