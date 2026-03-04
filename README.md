@@ -176,6 +176,52 @@ Use resources:
 - `@memory:mem://by-tags/repo:<repo-name>,svc:<service-name>`
 - `@memory:mem://item/<uuid>`
 
+## Backup & Restore
+
+The Docker setup includes an automatic backup service that runs daily at 2:00 AM and stores compressed PostgreSQL dumps in the `./backups/` directory.
+
+### Backup Configuration
+
+Configure via environment variables in your `.env` file:
+
+```bash
+BACKUP_RETENTION_DAYS=7  # How many days to keep backups (default: 7)
+```
+
+Backups are stored as `backups/memories_YYYY-MM-DD_HHMMSS.dump` (pg_dump custom format, compressed).
+
+### Restore from Backup
+
+To restore a backup, stop the server and run `pg_restore` against your database:
+
+```bash
+# 1. Stop the MCP server (disconnect from any MCP clients first)
+
+# 2. Restore the dump
+PGPASSWORD=yourpassword pg_restore \
+  --host=localhost \
+  --port=5432 \
+  --username=postgres \
+  --dbname=mcp_memory \
+  --clean \
+  --if-exists \
+  backups/memories_2024-01-15_020001.dump
+
+# 3. Restart the server / reconnect MCP clients
+```
+
+Or using Docker directly:
+
+```bash
+docker exec -i mcp-memory-db pg_restore \
+  -U postgres \
+  -d mcp_memory \
+  --clean --if-exists \
+  < backups/memories_2024-01-15_020001.dump
+```
+
+> **Note**: The `--clean --if-exists` flags drop and recreate all objects before restoring, which is the safest approach for a full restore.
+
 ## Known Issues
 
 ### Claude Desktop ResourceLink Compatibility

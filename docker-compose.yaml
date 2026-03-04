@@ -1,7 +1,7 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: postgres-memory
+    container_name: mcp-memory-db
     restart: unless-stopped
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -10,7 +10,7 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres-memory-data:/var/lib/postgresql/data
+      - mcp-memory-db-data:/var/lib/postgresql/data
       - ./docker/db/00-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
@@ -20,7 +20,7 @@ services:
 
   backup:
     image: postgres:16-alpine
-    container_name: postgres-memory-backup
+    container_name: mcp-memory-backup
     restart: unless-stopped
     depends_on:
       postgres:
@@ -38,5 +38,5 @@ services:
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
 
 volumes:
-  postgres-memory-data:
-    driver: local
+  mcp-memory-db-data:
+    external: true
