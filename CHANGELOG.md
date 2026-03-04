@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-04
+
+### Added
+
+- **Test suite** using Vitest with 113 passing unit tests across all modules:
+  - `test/unit/config.test.js` — `Config` env var parsing, defaults, clamping, `ConfigurationError`
+  - `test/unit/validator.test.js` — `Validator` for all four MCP tools, tag sanitization, edge cases
+  - `test/unit/embeddings.test.js` — `EmbeddingsManager` LRU cache, retry logic, model mock via `@xenova/transformers`
+  - `test/unit/database.test.js` — `DatabaseManager` query building, CRUD, error wrapping (pg mocked as class)
+  - `test/unit/protocol.test.js` — `MCPProtocolHandler` hash stability, client detection, tool routing, response shapes
+  - `test/integration/database.integration.test.js` — skips automatically when `DATABASE_URL` is unset; tests upsert idempotency, search/filter, list ordering against real Postgres
+- **`vitest.config.js`** with v8 coverage provider (lcov + text reporters)
+- **npm scripts**: `test` (unit), `test:integration`, `test:all`, `test:coverage`
+- **ESLint override** for `test/**` files: `max-lines-per-function` and `max-params` disabled (impractical for describe/it blocks)
+
+### Changed
+
+- `package.json` devDependencies: added `vitest` and `@vitest/coverage-v8`
+
 ## [0.2.0] - 2026-03-04
 
 ### Changed
