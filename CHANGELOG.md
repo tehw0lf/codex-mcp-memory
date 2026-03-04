@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-03-04
+
+### Changed
+
+- **Modular architecture**: Split monolithic `src/server.js` (~1500 lines) into focused ES modules:
+  - `src/index.js` — entry point (dotenv + server bootstrap)
+  - `src/config.js` — `Config` class with typed env var loading and validation
+  - `src/logger.js` — `Logger` with dual output (file + MCP stderr)
+  - `src/validator.js` — `Validator` with input sanitization and security limits
+  - `src/database.js` — `DatabaseManager` with connection pooling and queries
+  - `src/embeddings.js` — `EmbeddingsManager` with LRU cache and retry logic
+  - `src/protocol.js` — `MCPProtocolHandler` for JSON-RPC routing, tools, resources
+  - `src/server.js` — `MemoryServer` orchestrator (~180 lines)
+- `package.json` entry point updated to `src/index.js`
+- `eslint.config.js` updated to reflect ES module globals
+- `CLAUDE.md` and `README.md` updated with new module structure
+
 ## [0.1.1] - 2026-03-04
 
 ### Fixed
