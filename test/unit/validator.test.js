@@ -101,9 +101,9 @@ describe('Validator', () => {
       expect(validator.sanitizeTags(['UPPER', 'Mixed'])).toEqual(['upper', 'mixed']);
     });
 
-    it('accepts tags with allowed special chars (: . _ -)', () => {
+    it('accepts tags with allowed special chars (: . _ - /)', () => {
       expect(() =>
-        validator.sanitizeTags(['repo:foo', 'branch.main', 'v1_0', 'tag-a'])
+        validator.sanitizeTags(['repo:foo', 'branch.main', 'v1_0', 'tag-a', 'feature/my-branch'])
       ).not.toThrow();
     });
 
