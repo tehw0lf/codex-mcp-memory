@@ -168,6 +168,51 @@ docker exec -i mcp-memory-db pg_restore \
 
 **Status**: [upstream bug report](https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1638) — workaround will be removed once fixed.
 
+## Migration Guide
+
+### Migrating from upstream ([geranton93/codex-mcp-memory](https://github.com/geranton93/codex-mcp-memory))
+
+This fork is backwards-compatible with upstream. **Existing data in the database is fully preserved.**
+
+**Steps:**
+
+1. Check out this repository
+2. Run `npm install`
+3. Copy your existing `.env` — all upstream environment variables are still supported
+4. Update the path in your MCP client config to point to this repository
+5. Start the server
+
+No schema changes, no data migration needed.
+
+**What's different:**
+
+| Area                           | Upstream               | This fork                                          |
+| ------------------------------ | ---------------------- | -------------------------------------------------- |
+| MCP protocol version (default) | `2024-11-05`           | `2025-06-18`                                       |
+| Tag regex                      | `^[a-z0-9:_-]{1,100}$` | `^[a-z0-9:._/-]{1,100}$` (also allows `.` and `/`) |
+| Additional tool                | —                      | `memory_get` (retrieve by UUID)                    |
+| Test suite                     | none                   | 113 unit tests + integration tests (Vitest)        |
+| Code structure                 | single `src/server.js` | split into focused ES modules under `src/`         |
+| Automatic DB backups           | none                   | daily backup service in docker-compose             |
+
+> **Note on protocol version:** If your MCP client requires the older protocol version, set `MCP_PROTOCOL_VERSION=2024-11-05` in your `.env`.
+
+### Contributing to upstream
+
+- **Modular architecture**: `src/server.js` was split into focused ES modules (`config.js`, `database.js`, `embeddings.js`, `logger.js`, `protocol.js`, `validator.js`) for maintainability — the external behavior is identical
+- **Extended tag regex**: allows `.` and `/` in addition to upstream's `^[a-z0-9:_-]{1,100}$`, enabling tags like `feature/my-branch` or `repo:my.project` which are common in agent workflows
+- **`memory_get` tool**: retrieves a single memory by UUID — a natural complement to the existing tools
+- **MCP protocol 2025-06-18**: updated from `2024-11-05` with full spec compliance including structured content responses and resource links
+- **Claude Desktop workaround**: automatic client detection that filters `ResourceLink` items for Claude Desktop due to a [known upstream bug](https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1638)
+- **Test suite**: 113 unit tests + integration tests with Vitest
+- **Automatic DB backups**: daily backup service included in docker-compose
+
+### Reverting to upstream
+
+- Tags containing `.` or `/` (e.g. `feature/my-branch`, `repo:my.project`) will be **rejected** by upstream's stricter tag regex — clean up affected tags in the database first
+- The `memory_get` tool does not exist in upstream — calls to it will fail
+- Existing memory data remains fully compatible otherwise
+
 ## Development
 
 ```bash
