@@ -239,7 +239,10 @@ export class MCPProtocolHandler {
             content: { type: 'object', description: 'Content to store' },
             source: { type: 'string', description: 'Source of the memory' },
             tags: { type: 'array', items: { type: 'string' }, description: 'Optional tags' },
-            confidence: { type: 'number', description: 'Confidence score between 0 and 1' },
+            confidence: {
+              oneOf: [{ type: 'number' }, { type: 'string' }],
+              description: 'Confidence score between 0 and 1',
+            },
           },
         },
       },
@@ -641,7 +644,7 @@ export class MCPProtocolHandler {
               properties: {
                 type: { type: 'string' },
                 source: { type: 'string' },
-                confidence: { type: 'number' },
+                confidence: { oneOf: [{ type: 'number' }, { type: 'string' }] },
                 tags: { type: 'array', items: { type: 'string' } },
               },
             },
