@@ -74,4 +74,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Known Issues
 
 - Claude Desktop (≤0.13.37) rejects mixed `TextContent` + `ResourceLink` responses — workaround active, see README
-- No automated test suite yet
