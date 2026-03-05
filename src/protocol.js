@@ -256,7 +256,10 @@ export class MCPProtocolHandler {
             query: { type: 'string', description: 'Search query' },
             type: { type: 'string', description: 'Optional type filter' },
             tags: { type: 'array', items: { type: 'string' }, description: 'Optional tags filter' },
-            limit: { type: 'number', description: 'Maximum number of results to return' },
+            limit: {
+              oneOf: [{ type: 'number' }, { type: 'string' }],
+              description: 'Maximum number of results to return',
+            },
           },
         },
         outputSchema: {
@@ -631,7 +634,7 @@ export class MCPProtocolHandler {
               properties: {
                 query: { type: 'string' },
                 tags: { type: 'array', items: { type: 'string' } },
-                limit: { type: 'number' },
+                limit: { oneOf: [{ type: 'number' }, { type: 'string' }] },
               },
             },
           },

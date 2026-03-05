@@ -133,10 +133,11 @@ export class Validator {
   validateAndParseLimit(limit) {
     let searchLimit = this.config.search.defaultLimit;
     if (limit !== undefined) {
-      if (typeof limit !== 'number' || limit < 1) {
+      const coerced = typeof limit === 'string' ? parseInt(limit, 10) : limit;
+      if (typeof coerced !== 'number' || isNaN(coerced) || coerced < 1) {
         throw new ValidationError('limit must be a positive number');
       }
-      searchLimit = Math.min(limit, this.config.search.maxLimit);
+      searchLimit = Math.min(coerced, this.config.search.maxLimit);
     }
     return searchLimit;
   }

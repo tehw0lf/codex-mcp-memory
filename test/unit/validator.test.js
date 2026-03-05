@@ -151,6 +151,17 @@ describe('Validator', () => {
       );
     });
 
+    it('coerces string limit to number', () => {
+      const result = validator.validateMemorySearch({ query: 'q', limit: '5' });
+      expect(result.limit).toBe(5);
+    });
+
+    it('throws on non-numeric string limit', () => {
+      expect(() => validator.validateMemorySearch({ query: 'q', limit: 'abc' })).toThrow(
+        ValidationError
+      );
+    });
+
     it('includes type when provided', () => {
       const result = validator.validateMemorySearch({ query: 'q', type: 'note' });
       expect(result.type).toBe('note');
