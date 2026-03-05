@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-03-05
+
+### Fixed
+
+- **Confidence coercion**: Runtime now coerces `confidence` from string to number to handle MCP client serialization quirks (e.g. Codex CLI sending `"0.9"` instead of `0.9`)
+- **Tool schema**: `memory_create` and `memory_update` schemas now declare `confidence` as `oneOf[number, string]` to match the runtime behavior and prevent client-side validation errors
+- **README/docs**: Added missing `memory_get` tool, removed redundant env vars from config examples, added security note about secrets in `.env`, restructured for operator-first flow
+
 ## [0.3.0] - 2026-03-04
 
 ### Added
