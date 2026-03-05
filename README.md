@@ -135,6 +135,9 @@ The server provides three MCP tools for memory operations:
    - `type`: Optional type filter (string, optional)
    - `tags`: Optional tags filter (array of strings, optional)
 
+4. **memory_get** - Retrieve a single memory by ID
+   - `id`: UUID of the memory to retrieve (string, required)
+
 ## Memory Schema
 
 - id: Unique identifier
