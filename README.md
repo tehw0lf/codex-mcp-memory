@@ -45,6 +45,8 @@ See [MCP Configuration](#mcp-configuration) below.
 
 Environment variables are loaded from `.env` automatically — no need to pass them via the MCP client config.
 
+> **Security note:** Avoid putting secrets like `DATABASE_URL` directly in your MCP client configuration. Many MCP examples show API keys and credentials inline in tool configs, but this risks exposing them in client logs, shell history, or configuration files that may be synced or shared. Keep secrets in `.env` — one file, one place, excluded from version control.
+
 ### Claude Code
 
 ```bash
