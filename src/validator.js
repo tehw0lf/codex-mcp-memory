@@ -15,7 +15,7 @@ export class Validator {
     this.validateType(params.type);
     this.validateContent(params.content);
     this.validateSource(params.source);
-    this.validateConfidence(params.confidence);
+    const confidence = this.validateConfidence(params.confidence);
     this.validateTags(params.tags);
     this.validateContentLength(params.content);
 
@@ -25,7 +25,7 @@ export class Validator {
       content: params.content,
       source: params.source.trim().slice(0, 100),
       tags: sanitizedTags,
-      confidence: params.confidence,
+      confidence,
     };
 
     return sanitized;
@@ -50,14 +50,17 @@ export class Validator {
   }
 
   validateConfidence(confidence) {
+    const coerced = typeof confidence === 'string' ? parseFloat(confidence) : confidence;
     if (
-      confidence === undefined ||
-      typeof confidence !== 'number' ||
-      confidence < 0 ||
-      confidence > 1
+      coerced === undefined ||
+      typeof coerced !== 'number' ||
+      isNaN(coerced) ||
+      coerced < 0 ||
+      coerced > 1
     ) {
       throw new ValidationError('confidence is required and must be a number between 0 and 1');
     }
+    return coerced;
   }
 
   validateTags(tags = []) {
