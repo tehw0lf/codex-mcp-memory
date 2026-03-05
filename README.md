@@ -43,13 +43,12 @@ See [MCP Configuration](#mcp-configuration) below.
 
 ## MCP Configuration
 
+Environment variables are loaded from `.env` automatically — no need to pass them via the MCP client config.
+
 ### Claude Code
 
 ```bash
-claude mcp add memory \
-  --env DATABASE_URL="postgresql://postgres:yourpassword@localhost:5432/mcp_memory" \
-  --env LOG_LEVEL=info \
-  -- node /abs/path/to/codex-mcp-memory/src/index.js
+claude mcp add memory -- node /abs/path/to/codex-mcp-memory/src/index.js
 ```
 
 Use resources in Claude Code:
@@ -65,11 +64,6 @@ Add to your `codex-config.toml`:
 [mcp_servers.memory]
 command = "node"
 args = ["/abs/path/to/codex-mcp-memory/src/index.js"]
-
-[mcp_servers.memory.env]
-DATABASE_URL = "postgresql://postgres:yourpassword@localhost:5432/mcp_memory"
-LOG_LEVEL = "info"
-NODE_ENV = "production"
 ```
 
 ## Available Tools
