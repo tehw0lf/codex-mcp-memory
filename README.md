@@ -2,6 +2,73 @@
 
 A safe, reliable, and production-ready MCP (Model Context Protocol) server that implements long-term memory capabilities for AI assistants. Built with PostgreSQL and pgvector for efficient vector similarity search.
 
+## Benchmark
+
+[![LongMemEval R@5](https://img.shields.io/badge/LongMemEval%20R%405-90.2%25-brightgreen)](results/longmemeval_results.json)
+[![LongMemEval QA](https://img.shields.io/badge/LongMemEval%20QA-38.3%25-green)](results/longmemeval_qa_output.jsonl.eval-results-gpt-5)
+
+Evaluated on [LongMemEval](https://github.com/xiaowu0162/LongMemEval) (ICLR 2025) — 500 questions over realistic multi-session chat histories, 470 non-abstention questions scored.
+
+### R@5 (Retrieval)
+
+| System                          | R@5       |
+| ------------------------------- | --------- |
+| MemPalace (verbatim + ChromaDB) | 96.6%     |
+| **codex-mcp-memory**            | **90.2%** |
+| Mem0                            | 85.0%     |
+| Zep                             | 82.0%     |
+| Naive RAG                       | 52.0%     |
+
+### QA Accuracy (End-to-End)
+
+Answer generation with GPT-5 over top-5 retrieved turns, judged by GPT-5.
+
+| Question Type             | R@5       | QA Accuracy |
+| ------------------------- | --------- | ----------- |
+| single-session-user       | 93.8%     | 87.5%       |
+| knowledge-update          | 98.6%     | 59.7%       |
+| multi-session             | 97.5%     | 32.2%       |
+| temporal-reasoning        | 91.3%     | 25.2%       |
+| single-session-assistant  | 55.4%     | 14.3%       |
+| single-session-preference | 93.3%     | 6.7%        |
+| **overall**               | **90.2%** | **38.3%**   |
+
+The gap between R@5 and QA accuracy reflects structural constraints: top-5 individual turns often lack the full context needed for temporal reasoning, multi-session synthesis, or preference questions. `single-session-user` at 87.5% QA accuracy shows the system works well for its primary use case — factual recall about the user.
+
+The `single-session-assistant` scores reflect a limitation shared by all paper baselines: only user-side turns are indexed, so questions about what the assistant said are harder to retrieve and answer.
+
+**Note:** LongMemEval is designed for personal memory assistants (chatbots that remember personal facts about a user). The primary use case of this server is project/repository context memory for AI coding assistants, which maps most closely to the `knowledge-update` and `multi-session` categories.
+
+Embedding model: `Xenova/all-MiniLM-L6-v2` (22M parameters). See [`scripts/longmemeval_eval.py`](scripts/longmemeval_eval.py) to reproduce.
+
+### Reproducing the Benchmark
+
+1. Clone [LongMemEval](https://github.com/xiaowu0162/LongMemEval) and download the dataset (see their README)
+2. Apply the following modifications to `src/evaluation/evaluate_qa.py` in the LongMemEval repo:
+   - Add `gpt-5` to `model_zoo` with source `custom` to support OpenAI-compatible endpoints via `OPENAI_BASE_URL`:
+     ```python
+     'gpt-5': ('GPT-5', 'custom'),
+     ```
+   - Add the `custom` source branch in the API setup block:
+     ```python
+     elif metric_model_source == 'custom':
+         openai_api_key = os.getenv('OPENAI_API_KEY')
+         openai_api_base = os.getenv('OPENAI_BASE_URL')
+     ```
+   - Increase `max_tokens` from `10` to `500` (the upstream default of 10 truncates GPT-5 responses before the yes/no answer)
+3. Run the retrieval and QA evaluation using [`scripts/longmemeval_eval.py`](scripts/longmemeval_eval.py):
+   ```bash
+   pip install -r scripts/requirements-benchmark.txt
+   python scripts/longmemeval_eval.py
+   ```
+4. Run QA scoring with GPT-5:
+   ```bash
+   OPENAI_API_KEY=... OPENAI_BASE_URL=... python src/evaluation/evaluate_qa.py \
+     gpt-5 results/longmemeval_qa_output.jsonl <path-to-longmemeval-dataset>/longmemeval_s.json
+   ```
+
+Raw results are in [`results/`](results/).
+
 ## Features
 
 - **Semantic Search**: BERT-based embedding generation with similarity scoring

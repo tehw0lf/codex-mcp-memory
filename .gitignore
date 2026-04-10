@@ -34,3 +34,6 @@ build/
 
 # Debug files
 memory-debug.log
+
+# Benchmark data (upstream repo + dataset, not committed)
+data/
