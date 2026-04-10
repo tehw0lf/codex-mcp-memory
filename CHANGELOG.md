@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.3] - 2026-04-10
 
+### Added
+
+- **Benchmark**: Evaluated on [LongMemEval](https://github.com/xiaowu0162/LongMemEval) (ICLR 2025) — 90.2% R@5 retrieval, 38.3% end-to-end QA accuracy with GPT-5 as judge over 470 non-abstention questions
+- **Benchmark scripts**: `scripts/longmemeval_eval.py` and `scripts/requirements-benchmark.txt` for reproducing results
+- **Benchmark results**: Raw results in `results/` directory
+
 ### Changed
 
 - **Dependencies**: Updated dev dependencies (ajv, brace-expansion, flatted, js-yaml, minimatch, picomatch, vite) via `npm audit fix`
