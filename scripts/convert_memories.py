@@ -11,23 +11,21 @@ DIRECTION 1 — codex → mempalace:
   on insert — no null embeddings, full semantic search.
 
   Mapping:
-    memory.type       → wing  (e.g. "user" → "wing_user", "feedback" → "wing_feedback")
-    memory.source     → room  (e.g. "claude-code" → room-slug)
+    memory.type       → wing + room  (native Mempalace taxonomy via type_to_wing/type_to_room)
+    memory.source     → codex_source metadata (preserved for round-trip)
     memory.content    → content (human-readable text with metadata header)
     memory.tags       → in content + codex_tags metadata (for round-trip conversion)
     memory.confidence → in content + codex_confidence metadata
     memory.created_at → filed_at metadata
 
   Optional: --kg also builds the MemPalace Knowledge Graph.
-  Supported wings (structured extraction):
-    wing_release           → {project} --[released]--> {version}
-    wing_decision          → {project} --[decided]--> {summary}
-    wing_milestone         → {project} --[achieved]--> {milestone}
-    wing_project-milestone → {project} --[achieved]--> {milestone}
-    wing_bug-fix / bugfix  → {project} --[fixed]--> {summary}
-    wing_session-summary   → {project} --[session_completed]--> {date}
-    wing_project-status    → {project} --[status]--> {status}
-    wing_optimization      → {project} --[optimized]--> {summary}
+  Supported rooms (structured KG extraction):
+    releases      → {project} --[released]--> {version}
+    decisions     → {project} --[decided]--> {summary}
+    milestones    → {project} --[achieved]--> {milestone}
+    bugfixes      → {project} --[fixed]--> {summary}
+    status        → {project} --[status]--> {status}
+    optimizations → {project} --[optimized]--> {summary}
 
   For --kg: mempalace must be importable. Set PYTHONPATH to the mempalace repo,
   e.g. in your .env file:
@@ -99,17 +97,127 @@ def slugify(text: str) -> str:
     return text[:128] or "unknown"
 
 
-def type_to_wing(memory_type: str) -> str:
-    """Map a codex memory.type to a MemPalace wing name."""
-    type_map = {
-        "user": "wing_user",
-        "feedback": "wing_feedback",
-        "project": "wing_project",
-        "reference": "wing_reference",
+def _type_to_wing_room(memory_type: str) -> tuple[str, str]:
+    """Map a codex memory.type to (wing, room) in the native MemPalace taxonomy.
+
+    Covers both hyphen and underscore variants (Codex used both inconsistently).
+    """
+    t = memory_type.strip().lower()
+    _MAP: dict[str, tuple[str, str]] = {
+        # milestones
+        "milestone":              ("projects", "milestones"),
+        "project-milestone":      ("projects", "milestones"),
+        "project_milestone":      ("projects", "milestones"),
+        "session-summary":        ("projects", "milestones"),
+        "session_summary":        ("projects", "milestones"),
+        "development-session":    ("projects", "milestones"),
+        "development_session":    ("projects", "milestones"),
+        "achievement":            ("projects", "milestones"),
+        "checkpoint":             ("projects", "milestones"),
+        "progress":               ("projects", "milestones"),
+        "breakthrough":           ("projects", "milestones"),
+        "task_completion":        ("projects", "milestones"),
+        # bugfixes
+        "bugfix":                 ("projects", "bugfixes"),
+        "bug-fix":                ("projects", "bugfixes"),
+        "bug_fix":                ("projects", "bugfixes"),
+        "fix":                    ("projects", "bugfixes"),
+        "security_fix":           ("projects", "bugfixes"),
+        "bug_discovery":          ("projects", "bugfixes"),
+        # releases
+        "release":                ("projects", "releases"),
+        "project-release":        ("projects", "releases"),
+        # decisions
+        "decision":               ("projects", "decisions"),
+        "clarification":          ("projects", "decisions"),
+        # optimizations
+        "optimization":           ("projects", "optimizations"),
+        "optimization-complete":  ("projects", "optimizations"),
+        "optimization_complete":  ("projects", "optimizations"),
+        "performance-optimization": ("projects", "optimizations"),
+        "performance_optimization": ("projects", "optimizations"),
+        "performance-baseline":   ("projects", "optimizations"),
+        "performance_baseline":   ("projects", "optimizations"),
+        "profiling_analysis":     ("projects", "optimizations"),
+        # commits / code changes
+        "code-change":            ("projects", "commits"),
+        "code_change":            ("projects", "commits"),
+        "commit":                 ("projects", "commits"),
+        "git-commit":             ("projects", "commits"),
+        "git_commit":             ("projects", "commits"),
+        "refactoring":            ("projects", "commits"),
+        # features / implementations
+        "implementation":         ("projects", "features"),
+        "feature":                ("projects", "features"),
+        "feature-implementation": ("projects", "features"),
+        "feature_implementation": ("projects", "features"),
+        "integration_testing":    ("projects", "features"),
+        # preferences / identity
+        "user-preference":        ("coding", "preferences"),
+        "user_preference":        ("coding", "preferences"),
+        "preference":             ("coding", "preferences"),
+        "user_identity":          ("coding", "preferences"),
+        # status
+        "project-status":         ("projects", "status"),
+        "project_status":         ("projects", "status"),
+        "project-progress":       ("projects", "status"),
+        "project_progress":       ("projects", "status"),
+        "project-context":        ("projects", "status"),
+        "project_context":        ("projects", "status"),
+        "project-vision":         ("projects", "status"),
+        "project-update":         ("projects", "status"),
+        "project_update":         ("projects", "status"),
+        "project":                ("projects", "status"),
+        "planning":               ("projects", "status"),
+        "session_recovery":       ("projects", "status"),
+        # investigations / debugging
+        "investigation":          ("projects", "investigations"),
+        "spec-investigation":     ("projects", "investigations"),
+        "spec_investigation":     ("projects", "investigations"),
+        "debugging":              ("projects", "investigations"),
+        "analysis":               ("projects", "investigations"),
+        "experiment":             ("projects", "investigations"),
+        "technical":              ("projects", "investigations"),
+        # lessons / corrections
+        "lesson-learned":         ("projects", "lessons"),
+        "lesson_learned":         ("projects", "lessons"),
+        "correction":             ("projects", "lessons"),
+        "verification":           ("projects", "lessons"),
+        "pattern":                ("projects", "lessons"),
+        "methodology":            ("projects", "lessons"),
+        "transformation_guide":   ("projects", "lessons"),
+        # workflows / documentation
+        "workflow-update":        ("coding", "workflows"),
+        "workflow_update":        ("coding", "workflows"),
+        "documentation":          ("coding", "workflows"),
+        "documentation-milestone": ("coding", "workflows"),
+        "documentation_milestone": ("coding", "workflows"),
+        "phase1_documentation":   ("coding", "workflows"),
+        # testing
+        "test":                   ("projects", "features"),
+        "test_plan":              ("projects", "features"),
+        "test_results":           ("projects", "features"),
+        # development (generic)
+        "development":            ("projects", "milestones"),
+        # legacy explicit mappings (for round-trip compatibility)
+        "user":      ("coding",    "general"),
+        "feedback":  ("projects",  "general"),
+        "reference": ("coding",    "general"),
+        # notes / profiles (minimal structure)
+        "note":                   ("projects", "general"),
+        "writing-style-profile":  ("projects", "general"),
     }
-    if memory_type in type_map:
-        return type_map[memory_type]
-    return f"wing_{slugify(memory_type)}"
+    return _MAP.get(t, ("projects", "general"))
+
+
+def type_to_wing(memory_type: str) -> str:
+    """Map a codex memory.type to a native MemPalace wing name."""
+    return _type_to_wing_room(memory_type)[0]
+
+
+def type_to_room(memory_type: str) -> str:
+    """Map a codex memory.type to a native MemPalace room name."""
+    return _type_to_wing_room(memory_type)[1]
 
 
 def wing_to_type(wing: str) -> str:
@@ -449,7 +557,8 @@ def _kg_extract_triples(mem: dict) -> list[tuple[str, str, str, str | None]]:
     Returns a list of (subject, predicate, object, valid_from) tuples.
     valid_from is an ISO date string or None.
     """
-    wing = type_to_wing(mem["type"])
+    mem_type = mem["type"].strip().lower()
+    room = type_to_room(mem_type)
     content = mem.get("content") or {}
     created_at = mem.get("created_at")
     valid_from = str(created_at)[:10] if created_at else None
@@ -469,7 +578,7 @@ def _kg_extract_triples(mem: dict) -> list[tuple[str, str, str, str | None]]:
     if not project:
         return []
 
-    if wing == "wing_release":
+    if room == "releases":
         version = content.get("version")
         if version:
             triples.append((project, "released", str(version), valid_from))
@@ -477,7 +586,7 @@ def _kg_extract_triples(mem: dict) -> list[tuple[str, str, str, str | None]]:
         if status:
             triples.append((project, "release_status", str(status), valid_from))
 
-    elif wing == "wing_decision":
+    elif room == "decisions":
         decision = content.get("decision")
         if decision:
             triples.append((project, "decided", str(decision)[:200], valid_from))
@@ -485,38 +594,34 @@ def _kg_extract_triples(mem: dict) -> list[tuple[str, str, str, str | None]]:
         if topic:
             triples.append((project, "decision_topic", str(topic)[:200], valid_from))
 
-    elif wing in ("wing_milestone", "wing_project-milestone"):
+    elif room == "milestones":
         milestone = content.get("milestone") or content.get("summary")
         if milestone:
             triples.append((project, "achieved", str(milestone)[:200], valid_from))
         status = content.get("status")
         if status:
             triples.append((project, "milestone_status", str(status)[:100], valid_from))
-
-    elif wing in ("wing_bug-fix", "wing_bugfix"):
-        summary = content.get("summary") or content.get("description")
-        if summary:
-            triples.append((project, "fixed", str(summary)[:200], valid_from))
-
-    elif wing == "wing_session-summary":
-        date = content.get("date") or valid_from
-        if date:
-            triples.append((project, "session_completed", str(date), valid_from))
+        # session-summary may carry final_state
         final_state = content.get("final_state", {})
         if isinstance(final_state, dict):
             version = final_state.get("version")
             if version:
                 triples.append((project, "released", str(version), valid_from))
-            status = final_state.get("status")
-            if status:
-                triples.append((project, "status", str(status), valid_from))
+            fs_status = final_state.get("status")
+            if fs_status:
+                triples.append((project, "status", str(fs_status), valid_from))
 
-    elif wing == "wing_project-status":
+    elif room == "bugfixes":
+        summary = content.get("summary") or content.get("description")
+        if summary:
+            triples.append((project, "fixed", str(summary)[:200], valid_from))
+
+    elif room == "status":
         status = content.get("status") or content.get("state")
         if status:
             triples.append((project, "status", str(status)[:100], valid_from))
 
-    elif wing in ("wing_optimization", "wing_optimization-complete"):
+    elif room == "optimizations":
         summary = content.get("summary") or content.get("result")
         if summary:
             triples.append((project, "optimized", str(summary)[:200], valid_from))
@@ -658,14 +763,14 @@ def convert_codex_to_mempalace(db_url: str, palace_path: str, dry_run: bool = Fa
     (same model as codex-mcp-memory) — full semantic search without extra steps.
 
     With --kg: additionally extracts KG triples from structured memories
-    (wing_release, wing_decision, wing_milestone, etc.) and writes them into
+    (releases, decisions, milestones, etc.) and writes them into
     the MemPalace Knowledge Graph (knowledge_graph.sqlite3).
     """
     print("\n=== codex-mcp-memory → MemPalace ===")
     print(f"Source: PostgreSQL ({db_url[:50]}...)")
     print(f"Target: {palace_path}")
     if build_kg:
-        print("KG:     enabled (wing_release, wing_decision, wing_milestone, ...)")
+        print("KG:     enabled (releases, decisions, milestones, ...)")
     if dry_run:
         print("[DRY-RUN] No changes will be written.\n")
 
@@ -686,7 +791,7 @@ def convert_codex_to_mempalace(db_url: str, palace_path: str, dry_run: bool = Fa
 
     for mem in memories:
         wing = type_to_wing(mem["type"])
-        room = source_to_room(mem["source"])
+        room = type_to_room(mem["type"])
 
         content_text = content_to_text(
             mem["content"], mem["type"], mem["source"],
@@ -708,6 +813,8 @@ def convert_codex_to_mempalace(db_url: str, palace_path: str, dry_run: bool = Fa
             "source_file": "",
             "chunk_index": 0,
             "added_by": "codex-import",
+            "normalize_version": 2,
+            "hall": "memory",
             "filed_at": str(mem.get("created_at") or datetime.now().isoformat()),
             # Preserve original codex metadata (enables lossless round-trip)
             "codex_id": str(mem["id"]),
